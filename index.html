@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #4b0082;
+            transition: background-color 0.5s;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            display: none;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+            width: 300px;
+            height: 300px;
+        }
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #9b59b6;
+            border: 2px solid #8e44ad;
+            font-size: 50px;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            width: 100px;
+            height: 100px;
+        }
+        .cell:hover {
+            background-color: #8e44ad;
+        }
+        .cell.clicked {
+            pointer-events: none;
+            animation: pop 0.3s forwards;
+        }
+        @keyframes pop {
+            0% {
+                transform: scale(0.9);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .winner {
+            background-color: #ff3d3d;
+            animation: glow 1s infinite alternate;
+        }
+        @keyframes glow {
+            from {
+                box-shadow: 0 0 10px #ff3d3d;
+            }
+            to {
+                box-shadow: 0 0 20px #ff7a7a;
+            }
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #fff;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .reset-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .reset-btn:hover {
+            background-color: #2980b9;
+            transform: scale(1.05);
+        }
+        .loading-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #4b0082;
+            color: #fff;
+            font-size: 32px;
+            transition: opacity 0.5s;
+            z-index: 10;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen">
+        <div style="font-weight: 600; font-size: 24px;">Feira de Ciências<br>Desenvolvido por José Lucas</div>
+    </div>
+
+    <div class="container">
+        <div class="board"></div>
+        <div class="message"></div>
+        <button class="reset-btn">Jogar Novamente</button>
+    </div>
+
+    <script>
+        const boardElement = document.querySelector('.board');
+        const messageElement = document.querySelector('.message');
+        const resetButton = document.querySelector('.reset-btn');
+        const loadingScreen = document.querySelector('.loading-screen');
+        const cells = Array(9).fill(null);
+        let currentPlayer = 'X';
+        let gameActive = true;
+
+        const winningCombinations = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6],
+        ];
+
+        function createBoard() {
+            boardElement.innerHTML = '';
+            cells.forEach((_, index) => {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.dataset.index = index;
+                cell.addEventListener('click', handleCellClick);
+                boardElement.appendChild(cell);
+            });
+        }
+
+        function handleCellClick(event) {
+            const cell = event.target;
+            const index = cell.dataset.index;
+
+            if (cells[index] || !gameActive) return;
+
+            cells[index] = currentPlayer;
+            cell.textContent = currentPlayer;
+            cell.classList.add('clicked');
+            checkWinner();
+
+            if (gameActive) {
+                currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+                if (currentPlayer === 'O') {
+                    const bestMove = getBestMove();
+                    cells[bestMove] = currentPlayer;
+                    const aiCell = document.querySelector(`.cell[data-index='${bestMove}']`);
+                    aiCell.textContent = currentPlayer;
+                    checkWinner();
+                    currentPlayer = 'X';
+                }
+            }
+        }
+
+        function checkWinner() {
+            let winner = null;
+
+            winningCombinations.forEach(combination => {
+                const [a, b, c] = combination;
+                if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+                    winner = cells[a];
+                    combination.forEach(index => {
+                        document.querySelector(`.cell[data-index='${index}']`).classList.add('winner');
+                    });
+                }
+            });
+
+            if (winner) {
+                messageElement.textContent = `${winner} venceu!`;
+                gameActive = false;
+            } else if (cells.every(cell => cell)) {
+                messageElement.textContent = "Empate!";
+                gameActive = false;
+            }
+        }
+
+        function getBestMove() {
+            const availableMoves = cells.map((cell, index) => (cell === null ? index : null)).filter(item => item !== null);
+            if (availableMoves.length === 0) return null;
+
+            let bestMove = availableMoves[0];
+            let bestScore = -Infinity;
+
+            for (const move of availableMoves) {
+                cells[move] = 'O';
+                const score = minimax(cells, false);
+                cells[move] = null;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+            }
+
+            return bestMove;
+        }
+
+        function minimax(newCells, isMaximizing) {
+            const winner = getWinner(newCells);
+            if (winner === 'O') return 1;
+            if (winner === 'X') return -1;
+            if (newCells.every(cell => cell)) return 0;
+
+            if (isMaximizing) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < newCells.length; i++) {
+                    if (newCells[i] === null) {
+                        newCells[i] = 'O';
+                        const score = minimax(newCells, false);
+                        newCells[i] = null;
+                        bestScore = Math.max(score, bestScore);
+                    }
+                }
+                return bestScore;
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < newCells.length; i++) {
+                    if (newCells[i] === null) {
+                        newCells[i] = 'X';
+                        const score = minimax(newCells, true);
+                        newCells[i] = null;
+                        bestScore = Math.min(score, bestScore);
+                    }
+                }
+                return bestScore;
+            }
+        }
+
+        function getWinner(cells) {
+            for (const combination of winningCombinations) {
+                const [a, b, c] = combination;
+                if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) {
+                    return cells[a];
+                }
+            }
+            return null;
+        }
+
+        resetButton.addEventListener('click', resetGame);
+
+        function resetGame() {
+            cells.fill(null);
+            currentPlayer = 'X';
+            gameActive = true;
+            messageElement.textContent = '';
+            createBoard();
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('clicked', 'winner');
+            });
+        }
+
+        function showLoadingScreen() {
+            loadingScreen.classList.remove('hidden');
+            setTimeout(() => {
+                loadingScreen.style.opacity = 0;
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                    document.querySelector('.container').style.display = 'block';
+                }, 500);
+            }, 2000);
+        }
+
+        showLoadingScreen();
+        createBoard();
+    </script>
+</body>
+</html>
